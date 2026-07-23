@@ -1,0 +1,6 @@
+{
+  "name": "Smart Resume Builder - VITA.AI",
+  "description": "Sophisticated Dark Smart Resume Builder with live preview, 8 modern templates, AI optimizer, drag-and-drop sections, PDF export, and local storage autosave.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
