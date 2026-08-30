@@ -228,23 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 flex items-center gap-2.5 font-medium"
               >
                 <Download className="w-4 h-4 text-indigo-400" /> Download PDF
-              </button>
-              <button
-                onClick={() => { window.print(); setExportOpen(false); }}
-                className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 flex items-center gap-2.5"
-              >
-                <FileText className="w-4 h-4 text-purple-400" /> Print Resume
-              </button>
-              <button
-                onClick={() => { onExportJSON(); setExportOpen(false); }}
-                className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 flex items-center gap-2.5"
-              >
-                <Copy className="w-4 h-4 text-emerald-400" /> Export JSON
-              </button>
-              <label className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 flex items-center gap-2.5 cursor-pointer">
-                <Plus className="w-4 h-4 text-amber-400" /> Import JSON
-                <input type="file" accept=".json" onChange={(e) => { onImportJSON(e); setExportOpen(false); }} className="hidden" />
-              </label>
+              </button>        
             </div>
           )}
         </div>

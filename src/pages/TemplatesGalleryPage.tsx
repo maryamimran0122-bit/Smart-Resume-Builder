@@ -315,25 +315,6 @@ export const TemplatesGalleryPage: React.FC<GalleryProps> = ({
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Use & Edit Template</span>
                   </button>
-
-                  <button
-                    onClick={() => {
-                      setPreviewTemplate(t);
-                      setPreviewColor(activeColor);
-                    }}
-                    className="w-full py-2 px-4 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 backdrop-blur-md"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Live Preview Modal</span>
-                  </button>
-
-                  <button
-                    onClick={(e) => handleQuickPDFDownload(t, e)}
-                    className="w-full py-2 px-4 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 backdrop-blur-md"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Quick PDF Download</span>
-                  </button>
                 </div>
 
                 {/* Badge Pill */}
