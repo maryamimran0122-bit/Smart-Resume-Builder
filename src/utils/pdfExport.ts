@@ -1,204 +1,269 @@
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { ResumeData } from '../types/resume';
 
-// Cache converted color results for maximum performance
-const colorCache = new Map<string, string>();
-
-/**
- * Converts an oklch(...) or complex CSS color string to a standard rgb(...) or rgba(...) color
- * using the browser's DOM CSS computation.
- */
-const convertOklchColor = (oklchStr: string): string => {
-  if (!oklchStr) return 'rgb(0, 0, 0)';
-  const normalized = oklchStr.trim().toLowerCase();
-  if (colorCache.has(normalized)) {
-    return colorCache.get(normalized)!;
-  }
-
-  let result = 'rgb(79, 70, 229)'; // Sensible fallback (indigo)
-  try {
-    const div = document.createElement('div');
-    div.style.color = oklchStr;
-    document.body.appendChild(div);
-    const computed = window.getComputedStyle(div).color;
-    document.body.removeChild(div);
-    if (computed && computed !== '' && !computed.toLowerCase().includes('oklch')) {
-      result = computed;
-    }
-  } catch (e) {
-    // Fallback if computation fails
-  }
-
-  colorCache.set(normalized, result);
-  return result;
-};
-
-/**
- * Replaces all unsupported oklch(...) color functions and keywords in CSS string with standard browser-supported RGB/RGBA colors.
- */
-export const sanitizeCssOklch = (cssText: string): string => {
-  if (!cssText || !cssText.toLowerCase().includes('oklch')) return cssText;
-  let sanitized = cssText.replace(/oklch\s*\([^\)]+\)/gi, (match) => convertOklchColor(match));
-  sanitized = sanitized.replace(/in\s+oklch/gi, 'in srgb');
-  return sanitized;
-};
-
-/**
- * Exports any target resume preview element as a high-quality A4 PDF document.
- * Handles modern Tailwind v4 oklch color function conversion in html2canvas.
- */
 export const exportResumeToPDF = async (
-  resume: ResumeData,
-  onToast: (msg: string, type?: 'success' | 'error' | 'info') => void,
-  targetElementId: string = 'resume-preview-container'
+    resume: ResumeData,
+    onToast: (
+        msg: string,
+        type?: 'success' | 'error' | 'info'
+    ) => void,
+    targetElementId: string = 'resume-preview-container'
 ) => {
-  onToast('Generating high-resolution vector PDF...', 'info');
-  const previewContainer = document.getElementById(targetElementId);
-  if (!previewContainer) {
-    onToast('Resume preview element not found', 'error');
-    return;
-  }
 
-  try {
-    const canvas = await html2canvas(previewContainer, {
-      scale: 2.5,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      windowWidth: 1200,
-      onclone: (clonedDoc) => {
-        // Force light mode on cloned body so preview renders clean paper colors
-        clonedDoc.documentElement.classList.remove('dark');
-        clonedDoc.body.classList.remove('dark');
+    console.log('PDF PRINT EXPORT STARTED');
 
-        const clonedPreview = clonedDoc.getElementById(targetElementId);
-        if (clonedPreview) {
-          clonedPreview.style.transform = 'none';
-          clonedPreview.style.boxShadow = 'none';
-          clonedPreview.style.border = 'none';
-          clonedPreview.style.padding = '0';
-          clonedPreview.style.margin = '0 auto';
-          clonedPreview.style.backgroundColor = '#ffffff';
-        }
+    const resumeElement =
+        document.getElementById(targetElementId);
 
-        // 1. Process and replace all <style> elements in clonedDoc
-        const styleElements = Array.from(clonedDoc.querySelectorAll('style'));
-        styleElements.forEach((oldStyle) => {
-          let cssText = oldStyle.textContent || '';
-          if (!cssText && oldStyle.sheet) {
-            try {
-              const rules = oldStyle.sheet.cssRules;
-              if (rules) {
-                for (let i = 0; i < rules.length; i++) {
-                  cssText += rules[i].cssText + '\n';
-                }
-              }
-            } catch (e) {
-              // ignore
-            }
-          }
+    if (!resumeElement) {
 
-          if (cssText.toLowerCase().includes('oklch')) {
-            const sanitized = sanitizeCssOklch(cssText);
-            const newStyle = clonedDoc.createElement('style');
-            newStyle.textContent = sanitized;
-            if (oldStyle.parentNode) {
-              oldStyle.parentNode.replaceChild(newStyle, oldStyle);
-            } else {
-              clonedDoc.head.appendChild(newStyle);
-            }
-          }
-        });
+        console.error(
+            `#${targetElementId} was not found`
+        );
 
-        // 2. Process and replace all <link rel="stylesheet"> elements
-        const linkElements = Array.from(clonedDoc.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'));
-        linkElements.forEach((link) => {
-          try {
-            let rulesText = '';
-            if (link.sheet) {
-              const rules = link.sheet.cssRules;
-              if (rules) {
-                for (let i = 0; i < rules.length; i++) {
-                  rulesText += rules[i].cssText + '\n';
-                }
-              }
-            }
-            if (rulesText.toLowerCase().includes('oklch')) {
-              const sanitized = sanitizeCssOklch(rulesText);
-              const newStyle = clonedDoc.createElement('style');
-              newStyle.textContent = sanitized;
-              clonedDoc.head.appendChild(newStyle);
-              link.remove();
-            }
-          } catch (e) {
-            // Ignore potential cross-origin stylesheet access restriction
-          }
-        });
+        onToast(
+            'Resume preview not found.',
+            'error'
+        );
 
-        // 3. Traverse all elements in clonedDoc and replace any oklch in inline style or computed properties
-        const allElements = Array.from(clonedDoc.querySelectorAll<HTMLElement>('*'));
-        allElements.forEach((el) => {
-          // Sanitize style attribute
-          const styleAttr = el.getAttribute('style');
-          if (styleAttr && styleAttr.toLowerCase().includes('oklch')) {
-            el.setAttribute('style', sanitizeCssOklch(styleAttr));
-          }
-
-          // Force explicit inline colors for text, background, and borders if computed value contains oklch
-          try {
-            const computed = window.getComputedStyle(el);
-            const colorProps = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'fill', 'stroke'] as const;
-            colorProps.forEach((prop) => {
-              const val = computed[prop];
-              if (val && val.toLowerCase().includes('oklch')) {
-                el.style[prop] = convertOklchColor(val);
-              }
-            });
-          } catch (e) {
-            // ignore
-          }
-        });
-      }
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true
-    });
-
-    const pdfWidth = 210; // A4 mm width
-    const pdfPageHeight = 297; // A4 mm height
-    const imgWidth = pdfWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    // Render page 1
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfPageHeight;
-
-    // Multi-page handling if resume exceeds 1 A4 page
-    while (heightLeft > 5) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfPageHeight;
+        return;
     }
 
-    const nameSlug = (resume.personal.fullName || 'Resume').replace(/[^a-zA-Z0-9]/g, '_');
-    const titleSlug = (resume.title || 'Draft').replace(/[^a-zA-Z0-9]/g, '_');
-    const fileName = `${nameSlug}_${titleSlug}_VITA.pdf`;
+    try {
 
-    pdf.save(fileName);
-    onToast(`Downloaded ${fileName} successfully!`, 'success');
-  } catch (err) {
-    console.error('PDF Export Error:', err);
-    onToast('Failed to export PDF: ' + (err instanceof Error ? err.message : String(err)), 'error');
-  }
+        onToast(
+            'Preparing resume for PDF...',
+            'info'
+        );
+
+        /*
+         * Remember the current page state.
+         */
+        const originalTitle =
+            document.title;
+
+        /*
+         * Create a temporary print stylesheet.
+         *
+         * IMPORTANT:
+         * We are NOT cloning the resume.
+         * We are NOT removing its existing CSS.
+         *
+         * Chrome will print the actual resume element
+         * using the exact CSS currently displayed.
+         */
+        const printStyle =
+            document.createElement('style');
+
+        printStyle.id =
+            'vita-pdf-print-style';
+
+        printStyle.textContent = `
+
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
+            @media print {
+
+                html,
+                body {
+                    width: 210mm !important;
+                    min-width: 210mm !important;
+
+                    margin: 0 !important;
+                    padding: 0 !important;
+
+                    background: white !important;
+                }
+
+
+                /*
+                 * Hide everything on the application
+                 * except the resume.
+                 */
+                body > * {
+                    visibility: hidden !important;
+                }
+
+
+                /*
+                 * Make the resume visible.
+                 */
+                #${targetElementId} {
+                    visibility: visible !important;
+
+                    display: block !important;
+
+                    position: absolute !important;
+
+                    left: 0 !important;
+                    top: 0 !important;
+
+                    width: 210mm !important;
+
+                    min-width: 210mm !important;
+
+                    margin: 0 !important;
+
+                    padding: 0 !important;
+
+                    transform: none !important;
+
+                    box-shadow: none !important;
+
+                    overflow: visible !important;
+                }
+
+
+                #${targetElementId} * {
+                    visibility: visible !important;
+                }
+
+
+                /*
+                 * Preserve exact colors.
+                 */
+                * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+
+
+                /*
+                 * Do not let images get cropped.
+                 */
+                img {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+            }
+        `;
+
+
+        document.head.appendChild(
+            printStyle
+        );
+
+
+        /*
+         * Give Chrome a moment to apply the print
+         * stylesheet before printing.
+         */
+        await new Promise<void>(
+            resolve => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        resolve();
+                    });
+                });
+            }
+        );
+
+
+        /*
+         * Make the browser title useful if the user
+         * chooses Save to PDF.
+         */
+        const fullName =
+            resume.personal?.fullName ||
+            'Resume';
+
+        const title =
+            resume.title ||
+            'Resume';
+
+        const safeName =
+            fullName
+                .replace(
+                    /[^a-zA-Z0-9]+/g,
+                    '_'
+                )
+                .replace(
+                    /^_+|_+$/g,
+                    ''
+                );
+
+        const safeTitle =
+            title
+                .replace(
+                    /[^a-zA-Z0-9]+/g,
+                    '_'
+                )
+                .replace(
+                    /^_+|_+$/g,
+                    ''
+                );
+
+        document.title =
+            `${safeName || 'Resume'}_${safeTitle || 'Resume'}`;
+
+
+        /*
+         * Tell the browser to print.
+         *
+         * Chrome understands the actual CSS:
+         * - Tailwind
+         * - gradients
+         * - modern colors
+         * - flex
+         * - grid
+         * - fonts
+         * - borders
+         * - icons
+         */
+        window.print();
+
+
+        /*
+         * Restore the page after printing.
+         */
+        const cleanup = () => {
+
+            if (
+                printStyle.parentNode
+            ) {
+                printStyle.parentNode
+                    .removeChild(
+                        printStyle
+                    );
+            }
+
+            document.title =
+                originalTitle;
+
+            window.removeEventListener(
+                'afterprint',
+                cleanup
+            );
+
+            onToast(
+                'PDF print dialog opened. Choose "Save to PDF".',
+                'success'
+            );
+        };
+
+
+        window.addEventListener(
+            'afterprint',
+            cleanup
+        );
+
+    } catch (error) {
+
+        console.error(
+            'PDF PRINT ERROR:',
+            error
+        );
+
+        const message =
+            error instanceof Error
+                ? error.message
+                : String(error);
+
+        onToast(
+            `PDF export failed: ${message}`,
+            'error'
+        );
+    }
 };
-

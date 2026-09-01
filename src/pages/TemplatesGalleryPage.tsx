@@ -315,6 +315,7 @@ export const TemplatesGalleryPage: React.FC<GalleryProps> = ({
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Use & Edit Template</span>
                   </button>
+                 
                 </div>
 
                 {/* Badge Pill */}
@@ -389,16 +390,16 @@ export const TemplatesGalleryPage: React.FC<GalleryProps> = ({
       <div className="fixed top-[-9999px] left-[-9999px] pointer-events-none opacity-0">
         <div id="canva-modal-preview-render" className="w-[800px] bg-white text-slate-900 p-8">
           {previewTemplate && (
-           <ResumeTemplateRenderer
-  data={{
-    ...activeResume,
-    customization: {
-      ...activeResume.customization,
-      templateId: previewTemplate.id,
-      primaryColor: previewColor
-    }
-  }}
-/>
+            <ResumeTemplateRenderer
+              resume={{
+                ...activeResume,
+                customization: {
+                  ...activeResume.customization,
+                  templateId: previewTemplate.id,
+                  primaryColor: previewColor
+                }
+              }}
+            />
           )}
         </div>
       </div>
@@ -521,15 +522,15 @@ export const TemplatesGalleryPage: React.FC<GalleryProps> = ({
                     className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl min-h-[700px] text-slate-900 overflow-hidden transform scale-95 origin-top"
                   >
                     <ResumeTemplateRenderer
-  data={{
-    ...activeResume,
-    customization: {
-      ...activeResume.customization,
-      templateId: previewTemplate.id,
-      primaryColor: previewColor
-    }
-  }}
-/>
+                      resume={{
+                        ...activeResume,
+                        customization: {
+                          ...activeResume.customization,
+                          templateId: previewTemplate.id,
+                          primaryColor: previewColor
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               </div>

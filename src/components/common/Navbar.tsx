@@ -228,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="w-full text-left px-3 py-2 rounded-xl text-slate-200 hover:bg-white/10 flex items-center gap-2.5 font-medium"
               >
                 <Download className="w-4 h-4 text-indigo-400" /> Download PDF
-              </button>        
+              </button>
             </div>
           )}
         </div>
