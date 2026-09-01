@@ -391,7 +391,7 @@ export const TemplatesGalleryPage: React.FC<GalleryProps> = ({
         <div id="canva-modal-preview-render" className="w-[800px] bg-white text-slate-900 p-8">
           {previewTemplate && (
             <ResumeTemplateRenderer
-              resume={{
+              data={{
                 ...activeResume,
                 customization: {
                   ...activeResume.customization,
@@ -522,7 +522,7 @@ export const TemplatesGalleryPage: React.FC<GalleryProps> = ({
                     className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl min-h-[700px] text-slate-900 overflow-hidden transform scale-95 origin-top"
                   >
                     <ResumeTemplateRenderer
-                      resume={{
+                      data={{
                         ...activeResume,
                         customization: {
                           ...activeResume.customization,
